@@ -7,8 +7,8 @@
 // CONFIGURATION: 
 // Change RegionCode config.h !
 #define VERBOSE         // define to SILENT to turn off serial messages
-#define NOBLINK        // define to NOBLINK to turn off LED signaling
-#define NO_OLED        // define to NO_OLED to turn off display
+// #define NOBLINK        // define to NOBLINK to turn off LED signaling
+// #define NO_OLED        // define to NO_OLED to turn off display
                        // OLED supported for cubecell_board_Plus (HTCC-AB02) and cubecell_gps (HTCC-AB02S)
 // :CONFIGURATION
 
@@ -28,12 +28,12 @@ CubeCell_NeoPixel LED(1, RGB, NEO_GRB + NEO_KHZ800);
 
 #ifndef NO_OLED
     #ifdef CubeCell_BoardPlus
-        #include "cubecell_SH1107Wire.h"
-        SH1107Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 ); 
+        #include "HT_SH1107Wire.h"
+        SH1107Wire  display(0x3c, 500000, SDA, SCL, GEOMETRY_128_64, GPIO10); 
     #endif
     #ifdef CubeCell_GPS
-        #include "cubecell_SSD1306Wire.h"
-        SSD1306Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 ); 
+        #include "HT_SSD1306Wire.h"
+        SSD1306Wire display(0x3c, 500000, SDA, SCL, GEOMETRY_128_64, GPIO10); 
     #endif
 char str[32];
 #endif
@@ -79,44 +79,60 @@ void setup() {
     pb_decode_from_bytes((uint8_t *)&decoded[0], sizeof(decoded), ChannelSettings_fields, &ChanSet);
     // done, populate remaining settings according to channel name and provided modem config
     ChanSet.channel_num = hash( ChanSet.name ) % regions[REGION].numChannels; // see config.h
+    // TODO: this is hardcoded for now cause the protobuf decode doesn't seem to work right.
+    ChanSet.channel_num = 6;
     ChanSet.tx_power    = (regions[REGION].powerLimit == 0) ? TX_MAX_POWER : MIN(regions[REGION].powerLimit, TX_MAX_POWER) ;
     /* FYI: 
     "bandwidth":
     [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: 62.5kHz, 4: 41.67kHz, 5: 31.25kHz, 6: 20.83kHz, 7: 15.63kHz, 8: 10.42kHz, 9: 7.81kHz]
     "speed":
-        0: ChannelSettings_ModemConfig_Bw125Cr45Sf128 aka short range
-        1: ChannelSettings_ModemConfig_Bw500Cr45Sf128 aka medium range
-        2: ChannelSettings_ModemConfig_Bw31_25Cr48Sf512 aka long range
-        3: ChannelSettings_ModemConfig_Bw125Cr48Sf4096  aka very long range
+        0: ChannelSettings_ModemConfig_Bw125Cr45Sf128 aka ShortSlow SF7
+        1: ChannelSettings_ModemConfig_Bw500Cr45Sf128 aka ShortFast SF7
+        2: ChannelSettings_ModemConfig_Bw31_25Cr48Sf512 aka LongFast SF9
+        3: ChannelSettings_ModemConfig_Bw125Cr48Sf4096 aka LongSlow SF12
+        4: ChannelSettings_ModemConfig_Bw250Cr46Sf2048 aka MedSlow SF11
+        5: ChannelSettings_ModemConfig_Bw250Cr47Sf1024 aka MedFast SF10
     "coding rate":
         [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
     */
     switch ( (uint8_t)ChanSet.modem_config ){
-        case 0: {  // short range 
+        case 0: {  // ShortSlow
             ChanSet.bandwidth = 0;      // 125 kHz
             ChanSet.coding_rate = 1;    // = 4/5
             ChanSet.spread_factor = 7;
             break;
         }
-        case 1: {  // medium range 
+        case 1: {  // ShortFast
             ChanSet.bandwidth = 2;      // 500 kHz
             ChanSet.coding_rate = 1;    // = 4/5
             ChanSet.spread_factor = 7;
             break;
         }
-        case 2: {  // long range 
+        case 2: {  // LongFast
             ChanSet.bandwidth = 5;      // 31.25 kHz
             ChanSet.coding_rate = 4;    // = 4/8
             ChanSet.spread_factor = 9;
             break;
         }
-        case 3: {  // very long range 
+        case 3: {  // LongSlow 
             ChanSet.bandwidth = 0;      // 125 kHz
             ChanSet.coding_rate = 4;    // = 4/8
             ChanSet.spread_factor = 12;
             break;
         }
-        default:{  // default setting is very long range
+        case 4: {  // MedSlow 
+            ChanSet.bandwidth = 1;      // 250 kHz
+            ChanSet.coding_rate = 2;    // = 4/6
+            ChanSet.spread_factor = 11;
+            break;
+        }
+        case 5: {  // MedFast 
+            ChanSet.bandwidth = 1;      // 250 kHz
+            ChanSet.coding_rate = 3;    // = 4/7
+            ChanSet.spread_factor = 10;
+            break;
+        }
+        default:{  // default setting is LongSlow
             ChanSet.bandwidth = 0;      // 125 kHz
             ChanSet.coding_rate = 4;    // = 4/8
             ChanSet.spread_factor = 12;
@@ -224,9 +240,9 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     p->id   = h->id;
     p->hop_limit = h->flags && 0b00000111;
     p->want_ack  = h->flags && 0b00001000;
-    p->which_payload = MeshPacket_encrypted_tag;
+    p->which_payloadVariant = MeshPacket_encrypted_tag;
     p->encrypted.size= size - sizeof(PacketHeader);
-    p->decoded.data.payload.size = p->encrypted.size;
+    p->decoded.payload.size = p->encrypted.size;
     memcpy(p->encrypted.bytes, payload + sizeof(PacketHeader), p->encrypted.size);
 #ifndef SILENT
     MSG("\nReceived packet! (Size %i bytes, RSSI %i, SNR %i)\n", size, rssi, snr);

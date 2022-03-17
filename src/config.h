@@ -1,7 +1,12 @@
 // CONFIGURATION:
 #define REGION          RegionCode_EU865   // define your region here. For US, RegionCode_US, CN RegionCode_Cn etc.
 #define TX_MAX_POWER    14     // max output power in dB, keep in mind the maximums set by law and the hardware
-char MeshtasticLink[] = "https://www.meshtastic.org/c/#GAMiENTxuzogKQdZ8Lz_q89Oab8qB0RlZmF1bHQ=" ;
+char MeshtasticLink[] = "https://www.meshtastic.org/d/#CgsYAyIBAYABAYgBAQ" ;
+
+/// 16 bytes of random PSK for our _public_ default channel that all devices power up on (AES128)
+static const uint8_t defaultpsk[] = {0xd4, 0xf1, 0xbb, 0x3a, 0x20, 0x29, 0x07, 0x59,
+                                     0xf0, 0xbc, 0xff, 0xab, 0xcf, 0x4e, 0x69, 0xbf};
+                                     
 // :CONFIGURATION
 
 /*  RegionCodes:
@@ -25,7 +30,9 @@ char MeshtasticLink[] = "https://www.meshtastic.org/c/#GAMiENTxuzogKQdZ8Lz_q89Oa
 #define RX_TIMEOUT_VALUE            1000
 #define MAX_PAYLOAD_LENGTH          0xFF        // max payload (see  \cores\asr650x\device\asr6501_lrwan\radio.c  --> MaxPayloadLength)
 
-#include "mesh.pb.h"
+#include "generated/mesh.pb.h"
+#include "generated/radioconfig.pb.h"
+#include "generated/channel.pb.h"
 #include "mesh-pb-constants.h"
 
 typedef struct {
