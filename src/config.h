@@ -14,10 +14,10 @@ char MeshtasticLink[] = "https://www.meshtastic.org/c/#GAMiENTxuzogKQdZ8Lz_q89Oa
     RegionCode_JP
     RegionCode_ANZ
     RegionCode_KR
-    RegionCode_TW 
+    RegionCode_TW
 */
 
-#define RGB_GREEN                   0x000300    // receive mode  --- not longer used 
+#define RGB_GREEN                   0x000300    // receive mode  --- not longer used
 #define RGB_RED                     0x030000    // send mode
 
 #define LORA_PREAMBLE_LENGTH        32          // Same for Tx and Rx
@@ -29,12 +29,12 @@ char MeshtasticLink[] = "https://www.meshtastic.org/c/#GAMiENTxuzogKQdZ8Lz_q89Oa
 #include "mesh-pb-constants.h"
 
 typedef struct {
-    uint32_t to, from, id; 
+    uint32_t to, from, id;
     uint8_t flags;      // The bottom three bits of flags are used to store hop_limit, bit 4 is the WANT_ACK flag
 } PacketHeader;
 
-#define MSG(...)    Serial.printf(__VA_ARGS__) 
-#define LINE( count, c) { for (uint8_t i=0; i<count; i++ ) { Serial.print(c); } Serial.println();  } 
+#define MSG(...)    Serial.printf(__VA_ARGS__)
+#define LINE( count, c) { for (uint8_t i=0; i<count; i++ ) { Serial.print(c); } Serial.println();  }
 
 void onTxDone( void );
 void onCadDone( bool ChannelActive );
@@ -62,8 +62,8 @@ struct RegionInfo {
 
 const RegionInfo regions[] = {
     RDEF(Unset, 903.08f, 2.16f, 13, 0), // I put it FIRST, so i can use regions[] with RegionCode as index (Unset == 0)
-    RDEF(US, 903.08f, 2.16f, 13, 0), 
-    RDEF(EU433, 433.175f, 0.2f, 8, 0), 
+    RDEF(US, 903.08f, 2.16f, 13, 0),
+    RDEF(EU433, 433.175f, 0.2f, 8, 0),
     RDEF(EU865, 865.2f, 0.3f, 10, 0),
     RDEF(CN, 470.0f, 2.0f, 20, 0),
     RDEF(JP, 920.0f, 0.5f, 10, 13),    // See https://github.com/meshtastic/Meshtastic-device/issues/346 power level 13

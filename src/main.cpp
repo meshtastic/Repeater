@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include "config.h"
 #include <Base64.h>
+#include <LoRa_APP.h>
 #include "cyPm.c"
 
-// CONFIGURATION: 
+// CONFIGURATION:
 // Change RegionCode config.h !
 #define VERBOSE         // define to SILENT to turn off serial messages
 #define NOBLINK        // define to NOBLINK to turn off LED signaling
@@ -28,11 +29,11 @@ CubeCell_NeoPixel LED(1, RGB, NEO_GRB + NEO_KHZ800);
 #ifndef NO_OLED
     #ifdef CubeCell_BoardPlus
         #include "cubecell_SH1107Wire.h"
-        SH1107Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 ); 
+        SH1107Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 );
     #endif
     #ifdef CubeCell_GPS
         #include "cubecell_SSD1306Wire.h"
-        SSD1306Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 ); 
+        SSD1306Wire  display(0x3c, 500000, I2C_NUM_0,GEOMETRY_128_64,GPIO10 );
     #endif
 char str[32];
 #endif
@@ -45,7 +46,7 @@ void setup() {
 #endif
 #ifndef NOBLINK
     pinMode(Vext,OUTPUT);
-    digitalWrite(Vext,LOW); 
+    digitalWrite(Vext,LOW);
     delay(100);
     LED.begin();
     LED.clear( );
@@ -79,7 +80,7 @@ void setup() {
     // done, populate remaining settings according to channel name and provided modem config
     ChanSet.channel_num = hash( ChanSet.name ) % regions[REGION].numChannels; // see config.h
     ChanSet.tx_power    = (regions[REGION].powerLimit == 0) ? TX_MAX_POWER : MIN(regions[REGION].powerLimit, TX_MAX_POWER) ;
-    /* FYI: 
+    /* FYI:
     "bandwidth":
     [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: 62.5kHz, 4: 41.67kHz, 5: 31.25kHz, 6: 20.83kHz, 7: 15.63kHz, 8: 10.42kHz, 9: 7.81kHz]
     "speed":
@@ -91,25 +92,25 @@ void setup() {
         [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
     */
     switch ( (uint8_t)ChanSet.modem_config ){
-        case 0: {  // short range 
+        case 0: {  // short range
             ChanSet.bandwidth = 0;      // 125 kHz
             ChanSet.coding_rate = 1;    // = 4/5
             ChanSet.spread_factor = 7;
             break;
         }
-        case 1: {  // medium range 
+        case 1: {  // medium range
             ChanSet.bandwidth = 2;      // 500 kHz
             ChanSet.coding_rate = 1;    // = 4/5
             ChanSet.spread_factor = 7;
             break;
         }
-        case 2: {  // long range 
+        case 2: {  // long range
             ChanSet.bandwidth = 5;      // 31.25 kHz
             ChanSet.coding_rate = 4;    // = 4/8
             ChanSet.spread_factor = 9;
             break;
         }
-        case 3: {  // very long range 
+        case 3: {  // very long range
             ChanSet.bandwidth = 0;      // 125 kHz
             ChanSet.coding_rate = 4;    // = 4/8
             ChanSet.spread_factor = 12;
@@ -137,7 +138,7 @@ void setup() {
 }
 
 void onCheckRadio(void)
-{ 
+{
     TimerReset(&CheckRadio);
 }
 
@@ -146,18 +147,18 @@ void onCheckRadio(void)
 // If channel activiy detected, switch to RX mode for 500 symbols, to capture very long packages.
 // If the package is shorter, the onRXDone handler will put the LoRa to sleep, so no excess power consumption
 // Radio.Send() is non-blocking, so if a TX is running we cannot immediatly start a new CAD. We wait (sleep) until LoRa is idle.
- 
+
 void loop( )
 {
-    
+
     MCU_deepsleep( );
     Radio.IrqProcess(); // handle events from LoRa, if CAD, set SX1262 to receive (onCadDone)
     if ( Radio.GetStatus() == RF_IDLE ) Radio.StartCad( 3 ); // (in symbols)
-    
+
 }
 
 void onCadDone( bool ChannelActive ){
-    // Rx Time = 500 * symbol time (in ms) should be longer than receive time for max. packet length 
+    // Rx Time = 500 * symbol time (in ms) should be longer than receive time for max. packet length
     (ChannelActive) ? Radio.Rx( symbolTime >> 1 ) : Radio.Sleep();
 }
 
@@ -236,7 +237,7 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     MSG(" HOP_LIMIT=%i\n",          p->hop_limit);
     MSG("Payload:"); for ( int i=0; i < p->encrypted.size; i++ ) MSG(" %.2X", p->encrypted.bytes[i]);
     MSG("\n");
-#endif 
+#endif
 #ifndef NO_OLED
     display.clear();
     display.display();
@@ -254,7 +255,7 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     display.drawString(40,32,str);
     display.display();
 #endif
-    if ( !(lastreceivedID == thePacket.id) ){ 
+    if ( !(lastreceivedID == thePacket.id) ){
         // will repeat package
         lastreceivedID = thePacket.id;
         #ifndef NO_OLED
@@ -269,7 +270,7 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
         #ifndef SILENT
             MSG("Sending packet..");
             sendTime = millis();
-        #endif 
+        #endif
         Radio.Send( payload, size );
      }
     else{
@@ -281,12 +282,12 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
             display.drawString(0,53,str);
             display.display();
         #endif
-    } 
+    }
 }
 
 // hash a string into an integer - djb2 by Dan Bernstein. -
 // http://www.cse.yorku.ca/~oz/hash.html
-unsigned long hash(char *str) 
+unsigned long hash(char *str)
 {
     unsigned long hash = 5381;
     int c;
@@ -321,7 +322,7 @@ void MCU_deepsleep(void)
     UART_1_Sleep;
     #endif
     pinMode(P4_1, ANALOG); // SPI0 MISO
-    CySysPmDeepSleep(); // deep sleep mode    
+    CySysPmDeepSleep(); // deep sleep mode
     systime = (uint32_t)TimerGetCurrentTime();
     pinMode(P4_1, INPUT);
     #ifndef SILENT
