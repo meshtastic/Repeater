@@ -1,4 +1,4 @@
-# CubeCellRepeater
+# Meshtastic-repeater
 
 This is the code for a simple repeater node for the meshtastic project: https://github.com/meshtastic
 
