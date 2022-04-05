@@ -30,7 +30,7 @@ bool writecb(pb_ostream_t *stream, const uint8_t *buf, size_t count);
 
 /** is_in_repeated is a macro/function that returns true if a specified word appears in a repeated protobuf array.
  * It relies on the following naming conventions from nanopb:
- * 
+ *
  * pb_size_t ignore_incoming_count;
  * uint32_t ignore_incoming[3];
  */

@@ -11,12 +11,13 @@
 
 /* Enum definitions */
 typedef enum _ChannelSettings_ModemConfig { 
-    ChannelSettings_ModemConfig_Bw125Cr45Sf128 = 0, 
-    ChannelSettings_ModemConfig_Bw500Cr45Sf128 = 1, 
-    ChannelSettings_ModemConfig_Bw31_25Cr48Sf512 = 2, 
-    ChannelSettings_ModemConfig_Bw125Cr48Sf4096 = 3, 
-    ChannelSettings_ModemConfig_Bw250Cr46Sf2048 = 4, 
-    ChannelSettings_ModemConfig_Bw250Cr47Sf1024 = 5 
+    ChannelSettings_ModemConfig_VLongSlow = 0, 
+    ChannelSettings_ModemConfig_LongSlow = 1, 
+    ChannelSettings_ModemConfig_LongFast = 2, 
+    ChannelSettings_ModemConfig_MidSlow = 3, 
+    ChannelSettings_ModemConfig_MidFast = 4, 
+    ChannelSettings_ModemConfig_ShortSlow = 5, 
+    ChannelSettings_ModemConfig_ShortFast = 6 
 } ChannelSettings_ModemConfig;
 
 typedef enum _Channel_Role { 
@@ -43,7 +44,6 @@ typedef PB_BYTES_ARRAY_T(32) ChannelSettings_psk_t;
  users COULD type in a channel name and be able to talk.
  Y is a lower case letter from a-z that represents the channel 'speed' settings
  (for some future definition of speed)
-
  FIXME: Add description of multi-channel support and how primary vs secondary channels are used.
  FIXME: explain how apps use channels for security.
  explain how remote settings and remote gpio are managed as an example */
@@ -136,14 +136,15 @@ typedef struct _Channel {
     /* The new settings, or NULL to disable that channel */
     bool has_settings;
     ChannelSettings settings; 
+    /* TODO: REPLACE */
     Channel_Role role; 
 } Channel;
 
 
 /* Helper constants for enums */
-#define _ChannelSettings_ModemConfig_MIN ChannelSettings_ModemConfig_Bw125Cr45Sf128
-#define _ChannelSettings_ModemConfig_MAX ChannelSettings_ModemConfig_Bw250Cr47Sf1024
-#define _ChannelSettings_ModemConfig_ARRAYSIZE ((ChannelSettings_ModemConfig)(ChannelSettings_ModemConfig_Bw250Cr47Sf1024+1))
+#define _ChannelSettings_ModemConfig_MIN ChannelSettings_ModemConfig_VLongSlow
+#define _ChannelSettings_ModemConfig_MAX ChannelSettings_ModemConfig_ShortFast
+#define _ChannelSettings_ModemConfig_ARRAYSIZE ((ChannelSettings_ModemConfig)(ChannelSettings_ModemConfig_ShortFast+1))
 
 #define _Channel_Role_MIN Channel_Role_DISABLED
 #define _Channel_Role_MAX Channel_Role_SECONDARY

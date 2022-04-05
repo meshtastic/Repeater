@@ -17,6 +17,7 @@
  No DISABLED channels are included.
  This abstraction is used only on the the 'app side' of the world (ie python, javascript and android etc) to show a group of Channels as a (long) URL */
 typedef struct _ChannelSet { 
+    /* TODO: REPLACE */
     pb_callback_t settings; 
 } ChannelSet;
 

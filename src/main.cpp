@@ -3,8 +3,9 @@
 #include <Base64.h>
 #include <LoRa_APP.h>
 #include "cyPm.c"
+#include <pb_decode.h>
 
-// CONFIGURATION: 
+// CONFIGURATION:
 // Change RegionCode config.h !
 #define VERBOSE         // define to SILENT to turn off serial messages
 // #define NOBLINK        // define to NOBLINK to turn off LED signaling
@@ -13,7 +14,8 @@
 // :CONFIGURATION
 
 static MeshPacket       thePacket;
-static ChannelSettings  ChanSet;
+static ChannelSet       ChanSet;
+static ChannelSettings  CSet;
 static RadioEvents_t    RadioEvents;
 static TimerEvent_t     CheckRadio;
 static uint32_t         lastreceivedID = 0;
@@ -38,6 +40,13 @@ CubeCell_NeoPixel LED(1, RGB, NEO_GRB + NEO_KHZ800);
 char str[32];
 #endif
 
+bool ChannelSet_callback(pb_istream_t *istream, const pb_field_iter_t *field, void **arg)
+{
+    ChannelSettings * dest = (ChannelSettings*)(*arg);
+    ChannelSettings target = *dest;
+    return true;
+}
+
 void setup() {
     TimerInit( &CheckRadio, onCheckRadio );
 #ifndef NO_OLED
@@ -46,7 +55,7 @@ void setup() {
 #endif
 #ifndef NOBLINK
     pinMode(Vext,OUTPUT);
-    digitalWrite(Vext,LOW); 
+    digitalWrite(Vext,LOW);
     delay(100);
     LED.begin();
     LED.clear( );
@@ -76,12 +85,13 @@ void setup() {
     // import Channel Settings from Meshtastic Link (channel name, modem config):
     char decoded[Base64.decodedLength(&MeshtasticLink[30], sizeof(MeshtasticLink)-30)];
     Base64.decode(decoded, &MeshtasticLink[30], sizeof(MeshtasticLink)-30);
-    pb_decode_from_bytes((uint8_t *)&decoded[0], sizeof(decoded), ChannelSettings_fields, &ChanSet);
+    ChanSet.settings.arg = &CSet;
+    ChanSet.settings.funcs.decode = ChannelSet_callback;
+    pb_decode_from_bytes((uint8_t *)&decoded[0], sizeof(decoded), ChannelSet_fields, &ChanSet);
     // done, populate remaining settings according to channel name and provided modem config
-    ChanSet.channel_num = hash( ChanSet.name ) % regions[REGION].numChannels; // see config.h
+    CSet.channel_num = 6; // hash( CSet.name ) % regions[REGION].numChannels; // see config.h
     // TODO: this is hardcoded for now cause the protobuf decode doesn't seem to work right.
-    ChanSet.channel_num = 6;
-    ChanSet.tx_power    = (regions[REGION].powerLimit == 0) ? TX_MAX_POWER : MIN(regions[REGION].powerLimit, TX_MAX_POWER) ;
+    CSet.tx_power    = (regions[REGION].powerLimit == 0) ? TX_MAX_POWER : MIN(regions[REGION].powerLimit, TX_MAX_POWER) ;
     /* FYI: 
     "bandwidth":
     [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: 62.5kHz, 4: 41.67kHz, 5: 31.25kHz, 6: 20.83kHz, 7: 15.63kHz, 8: 10.42kHz, 9: 7.81kHz]
@@ -95,51 +105,51 @@ void setup() {
     "coding rate":
         [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
     */
-    switch ( (uint8_t)ChanSet.modem_config ){
+    switch ( (uint8_t)CSet.modem_config ){
         case 0: {  // ShortSlow
-            ChanSet.bandwidth = 0;      // 125 kHz
-            ChanSet.coding_rate = 1;    // = 4/5
-            ChanSet.spread_factor = 7;
+            CSet.bandwidth = 0;      // 125 kHz
+            CSet.coding_rate = 1;    // = 4/5
+            CSet.spread_factor = 7;
             break;
         }
         case 1: {  // ShortFast
-            ChanSet.bandwidth = 2;      // 500 kHz
-            ChanSet.coding_rate = 1;    // = 4/5
-            ChanSet.spread_factor = 7;
+            CSet.bandwidth = 2;      // 500 kHz
+            CSet.coding_rate = 1;    // = 4/5
+            CSet.spread_factor = 7;
             break;
         }
         case 2: {  // LongFast
-            ChanSet.bandwidth = 5;      // 31.25 kHz
-            ChanSet.coding_rate = 4;    // = 4/8
-            ChanSet.spread_factor = 9;
+            CSet.bandwidth = 5;      // 31.25 kHz
+            CSet.coding_rate = 4;    // = 4/8
+            CSet.spread_factor = 9;
             break;
         }
         case 3: {  // LongSlow 
-            ChanSet.bandwidth = 0;      // 125 kHz
-            ChanSet.coding_rate = 4;    // = 4/8
-            ChanSet.spread_factor = 12;
+            CSet.bandwidth = 0;      // 125 kHz
+            CSet.coding_rate = 4;    // = 4/8
+            CSet.spread_factor = 12;
             break;
         }
         case 4: {  // MedSlow 
-            ChanSet.bandwidth = 1;      // 250 kHz
-            ChanSet.coding_rate = 2;    // = 4/6
-            ChanSet.spread_factor = 11;
+            CSet.bandwidth = 1;      // 250 kHz
+            CSet.coding_rate = 2;    // = 4/6
+            CSet.spread_factor = 11;
             break;
         }
         case 5: {  // MedFast 
-            ChanSet.bandwidth = 1;      // 250 kHz
-            ChanSet.coding_rate = 3;    // = 4/7
-            ChanSet.spread_factor = 10;
+            CSet.bandwidth = 1;      // 250 kHz
+            CSet.coding_rate = 3;    // = 4/7
+            CSet.spread_factor = 10;
             break;
         }
         default:{  // default setting is LongSlow
-            ChanSet.bandwidth = 0;      // 125 kHz
-            ChanSet.coding_rate = 4;    // = 4/8
-            ChanSet.spread_factor = 12;
+            CSet.bandwidth = 0;      // 125 kHz
+            CSet.coding_rate = 4;    // = 4/8
+            CSet.spread_factor = 12;
         }
     }
-    symbolTime =  ((1<< ChanSet.spread_factor)*1000 +32) *1000 / TheBandwidths[ChanSet.bandwidth]; // in micro seconds!
-    ConfigureRadio( ChanSet );
+    symbolTime =  ((1<< CSet.spread_factor)*1000 +32) *1000 / TheBandwidths[CSet.bandwidth]; // in micro seconds!
+    ConfigureRadio( CSet );
 #ifndef SILENT
     MSG("\n..done!\n");
     LINE(60,"*");
@@ -154,7 +164,7 @@ void setup() {
 }
 
 void onCheckRadio(void)
-{ 
+{
     TimerReset(&CheckRadio);
 }
 
@@ -163,18 +173,18 @@ void onCheckRadio(void)
 // If channel activiy detected, switch to RX mode for 500 symbols, to capture very long packages.
 // If the package is shorter, the onRXDone handler will put the LoRa to sleep, so no excess power consumption
 // Radio.Send() is non-blocking, so if a TX is running we cannot immediatly start a new CAD. We wait (sleep) until LoRa is idle.
- 
+
 void loop( )
 {
-    
+
     MCU_deepsleep( );
     Radio.IrqProcess(); // handle events from LoRa, if CAD, set SX1262 to receive (onCadDone)
     if ( Radio.GetStatus() == RF_IDLE ) Radio.StartCad( 3 ); // (in symbols)
-    
+
 }
 
 void onCadDone( bool ChannelActive ){
-    // Rx Time = 500 * symbol time (in ms) should be longer than receive time for max. packet length 
+    // Rx Time = 500 * symbol time (in ms) should be longer than receive time for max. packet length
     (ChannelActive) ? Radio.Rx( symbolTime >> 1 ) : Radio.Sleep();
 }
 
@@ -253,7 +263,7 @@ void onRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     MSG(" HOP_LIMIT=%i\n",          p->hop_limit);
     MSG("Payload:"); for ( int i=0; i < p->encrypted.size; i++ ) MSG(" %.2X", p->encrypted.bytes[i]);
     MSG("\n");
-#endif 
+#endif
 #ifndef NO_OLED
     display.clear();
     display.display();

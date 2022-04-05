@@ -6,14 +6,15 @@
 #include <pb.h>
 #include "channel.pb.h"
 #include "mesh.pb.h"
-#include "radioconfig.pb.h"
 
 #if PB_PROTO_HEADER_VERSION != 40
 #error Regenerate this file with the current version of nanopb generator.
 #endif
 
 /* Struct definitions */
+/* The on-disk saved channels */
 typedef struct _ChannelFile { 
+    /* The channels our node knows about */
     pb_size_t channels_count;
     Channel channels[8]; 
 } ChannelFile;
@@ -23,36 +24,32 @@ typedef struct _ChannelFile {
  FIXME, since we write this each time we enter deep sleep (and have infinite
  flash) it would be better to use some sort of append only data structure for
  the receive queue and use the preferences store for the other stuff */
-typedef struct _LegacyRadioConfig_LegacyPreferences { 
-    /* Moved to its own file, but we keep this here so we can automatically migrate old radio.region settings */
-    RegionCode region; 
-} LegacyRadioConfig_LegacyPreferences;
-
-/* This is a stub version of the old 1.1 representation of RadioConfig.
- But only keeping the region info.
- The device firmware uses this stub while migrating old nodes to the new preferences system. */
-typedef struct _LegacyRadioConfig { 
-    bool has_preferences;
-    LegacyRadioConfig_LegacyPreferences preferences; 
-} LegacyRadioConfig;
-
-/* The on-disk saved channels */
 typedef struct _DeviceState { 
-    /* The channels our node knows about */
-    bool has_legacyRadio;
-    LegacyRadioConfig legacyRadio; 
+    /* Read only settings/info about this node */
     bool has_my_node;
     MyNodeInfo my_node; 
+    /* My owner info */
     bool has_owner;
     User owner; 
+    /* TODO: REPLACE */
     pb_size_t node_db_count;
-    NodeInfo node_db[32]; 
+    NodeInfo node_db[80]; 
+    /* Received packets saved for delivery to the phone */
     pb_size_t receive_queue_count;
     MeshPacket receive_queue[1]; 
+    /* A version integer used to invalidate old save files when we make
+ incompatible changes This integer is set at build time and is private to
+ NodeDB.cpp in the device code. */
     bool has_rx_text_message;
     MeshPacket rx_text_message; 
+    /* We keep the last received text message (only) stored in the device flash,
+ so we can show it on the screen.
+ Might be null */
     uint32_t version; 
+    /* Used only during development.
+ Indicates developer is testing and changes should never be saved to flash. */
     bool no_save; 
+    /* Some GPSes seem to have bogus settings from the factory, so we always do one factory reset. */
     bool did_gps_reset; 
 } DeviceState;
 
@@ -62,20 +59,13 @@ extern "C" {
 #endif
 
 /* Initializer values for message structs */
-#define LegacyRadioConfig_init_default           {false, LegacyRadioConfig_LegacyPreferences_init_default}
-#define LegacyRadioConfig_LegacyPreferences_init_default {_RegionCode_MIN}
-#define DeviceState_init_default                 {false, LegacyRadioConfig_init_default, false, MyNodeInfo_init_default, false, User_init_default, 0, {NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default}, 0, {MeshPacket_init_default}, false, MeshPacket_init_default, 0, 0, 0}
+#define DeviceState_init_default                 {false, MyNodeInfo_init_default, false, User_init_default, 0, {NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default, NodeInfo_init_default}, 0, {MeshPacket_init_default}, false, MeshPacket_init_default, 0, 0, 0}
 #define ChannelFile_init_default                 {0, {Channel_init_default, Channel_init_default, Channel_init_default, Channel_init_default, Channel_init_default, Channel_init_default, Channel_init_default, Channel_init_default}}
-#define LegacyRadioConfig_init_zero              {false, LegacyRadioConfig_LegacyPreferences_init_zero}
-#define LegacyRadioConfig_LegacyPreferences_init_zero {_RegionCode_MIN}
-#define DeviceState_init_zero                    {false, LegacyRadioConfig_init_zero, false, MyNodeInfo_init_zero, false, User_init_zero, 0, {NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero}, 0, {MeshPacket_init_zero}, false, MeshPacket_init_zero, 0, 0, 0}
+#define DeviceState_init_zero                    {false, MyNodeInfo_init_zero, false, User_init_zero, 0, {NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero, NodeInfo_init_zero}, 0, {MeshPacket_init_zero}, false, MeshPacket_init_zero, 0, 0, 0}
 #define ChannelFile_init_zero                    {0, {Channel_init_zero, Channel_init_zero, Channel_init_zero, Channel_init_zero, Channel_init_zero, Channel_init_zero, Channel_init_zero, Channel_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
 #define ChannelFile_channels_tag                 1
-#define LegacyRadioConfig_LegacyPreferences_region_tag 15
-#define LegacyRadioConfig_preferences_tag        1
-#define DeviceState_legacyRadio_tag              1
 #define DeviceState_my_node_tag                  2
 #define DeviceState_owner_tag                    3
 #define DeviceState_node_db_tag                  4
@@ -86,19 +76,7 @@ extern "C" {
 #define DeviceState_did_gps_reset_tag            11
 
 /* Struct field encoding specification for nanopb */
-#define LegacyRadioConfig_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  preferences,       1)
-#define LegacyRadioConfig_CALLBACK NULL
-#define LegacyRadioConfig_DEFAULT NULL
-#define LegacyRadioConfig_preferences_MSGTYPE LegacyRadioConfig_LegacyPreferences
-
-#define LegacyRadioConfig_LegacyPreferences_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UENUM,    region,           15)
-#define LegacyRadioConfig_LegacyPreferences_CALLBACK NULL
-#define LegacyRadioConfig_LegacyPreferences_DEFAULT NULL
-
 #define DeviceState_FIELDLIST(X, a) \
-X(a, STATIC,   OPTIONAL, MESSAGE,  legacyRadio,       1) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  my_node,           2) \
 X(a, STATIC,   OPTIONAL, MESSAGE,  owner,             3) \
 X(a, STATIC,   REPEATED, MESSAGE,  node_db,           4) \
@@ -109,7 +87,6 @@ X(a, STATIC,   SINGULAR, BOOL,     no_save,           9) \
 X(a, STATIC,   SINGULAR, BOOL,     did_gps_reset,    11)
 #define DeviceState_CALLBACK NULL
 #define DeviceState_DEFAULT NULL
-#define DeviceState_legacyRadio_MSGTYPE LegacyRadioConfig
 #define DeviceState_my_node_MSGTYPE MyNodeInfo
 #define DeviceState_owner_MSGTYPE User
 #define DeviceState_node_db_MSGTYPE NodeInfo
@@ -122,22 +99,16 @@ X(a, STATIC,   REPEATED, MESSAGE,  channels,          1)
 #define ChannelFile_DEFAULT NULL
 #define ChannelFile_channels_MSGTYPE Channel
 
-extern const pb_msgdesc_t LegacyRadioConfig_msg;
-extern const pb_msgdesc_t LegacyRadioConfig_LegacyPreferences_msg;
 extern const pb_msgdesc_t DeviceState_msg;
 extern const pb_msgdesc_t ChannelFile_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
-#define LegacyRadioConfig_fields &LegacyRadioConfig_msg
-#define LegacyRadioConfig_LegacyPreferences_fields &LegacyRadioConfig_LegacyPreferences_msg
 #define DeviceState_fields &DeviceState_msg
 #define ChannelFile_fields &ChannelFile_msg
 
 /* Maximum encoded size of messages (where known) */
 #define ChannelFile_size                         832
-#define DeviceState_size                         9986
-#define LegacyRadioConfig_LegacyPreferences_size 2
-#define LegacyRadioConfig_size                   4
+#define DeviceState_size                         23903
 
 #ifdef __cplusplus
 } /* extern "C" */

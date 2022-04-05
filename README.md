@@ -1,4 +1,4 @@
-# CubeCellRepeater
+# Meshtastic-repeater
 
 This is the code for a simple repeater node for the meshtastic project: https://github.com/meshtastic
 
@@ -12,7 +12,7 @@ See the provided platformio.ini for built-in environments. Default is cubecell_b
 Will repeat packets ONCE. To prevent flooding the last repeated packet ID will not be repeated again.
 
 Keep in mind that re-sending packets will cause the initial sender to assume that the packet is "received" or at least in the mesh.
-If no other meshtastic node is in range of either the node or the repeater, the message will still be shown as received. 
+If no other meshtastic node is in range of either the node or the repeater, the message will still be shown as received.
 You can use this for range tests.
 
 Will work with most packets meeting the radio settings, but the serial output is based on the assumption that the node receives meshtastic packets.
@@ -24,7 +24,7 @@ The Repeater is not working for “medium range” setting due to the tight timi
 
 "#define NOBLINK" to NOT getting a red blink from the RGB LED for the duration of sending a packet (can be quite long at speed setting 3).
 
-"define NO_OLED" to turn off messages on the OLED. Supported Boards for OLED mode are HTCC-AB02 and HTCC-AB02S (cubecell_board_Plus and cubecell_gps). 
+"define NO_OLED" to turn off messages on the OLED. Supported Boards for OLED mode are HTCC-AB02 and HTCC-AB02S (cubecell_board_Plus and cubecell_gps).
 
 Modifying radio settings for your own channels:
 
