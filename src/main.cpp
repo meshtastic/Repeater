@@ -89,66 +89,74 @@ void setup() {
     ChanSet.settings.funcs.decode = ChannelSet_callback;
     pb_decode_from_bytes((uint8_t *)&decoded[0], sizeof(decoded), ChannelSet_fields, &ChanSet);
     // done, populate remaining settings according to channel name and provided modem config
-    CSet.channel_num = 6; // hash( CSet.name ) % regions[REGION].numChannels; // see config.h
+        CSet.channel_num = 6; // hash( CSet.name ) % regions[REGION].numChannels; // see config.h
     // TODO: this is hardcoded for now cause the protobuf decode doesn't seem to work right.
     CSet.tx_power    = (regions[REGION].powerLimit == 0) ? TX_MAX_POWER : MIN(regions[REGION].powerLimit, TX_MAX_POWER) ;
     /* FYI: 
     "bandwidth":
     [0: 125 kHz, 1: 250 kHz, 2: 500 kHz, 3: 62.5kHz, 4: 41.67kHz, 5: 31.25kHz, 6: 20.83kHz, 7: 15.63kHz, 8: 10.42kHz, 9: 7.81kHz]
     "speed":
-        0: ChannelSettings_ModemConfig_Bw125Cr45Sf128 aka ShortSlow SF7
-        1: ChannelSettings_ModemConfig_Bw500Cr45Sf128 aka ShortFast SF7
-        2: ChannelSettings_ModemConfig_Bw31_25Cr48Sf512 aka LongFast SF9
-        3: ChannelSettings_ModemConfig_Bw125Cr48Sf4096 aka LongSlow SF12
-        4: ChannelSettings_ModemConfig_Bw250Cr46Sf2048 aka MedSlow SF11
-        5: ChannelSettings_ModemConfig_Bw250Cr47Sf1024 aka MedFast SF10
+        0: ChannelSettings_ModemConfig_VLongSlow SF12 
+        1: ChannelSettings_ModemConfig_LongSlow SF12
+        2: ChannelSettings_ModemConfig_LongFast SF11
+        3: ChannelSettings_ModemConfig_MidSlow SF10
+        4: ChannelSettings_ModemConfig_MidFast SF9
+        5: ChannelSettings_ModemConfig_ShortSlow SF8
+        6: ChannelSettings_ModemConfig_ShortFast SF7
+
     "coding rate":
         [1: 4/5, 2: 4/6, 3: 4/7, 4: 4/8]
     */
     switch ( (uint8_t)CSet.modem_config ){
-        case 0: {  // ShortSlow
-            CSet.bandwidth = 0;      // 125 kHz
-            CSet.coding_rate = 1;    // = 4/5
-            CSet.spread_factor = 7;
+        case 0: {  // VLongSlow
+            CSet.bandwidth = 5; // 31.25
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 12;
             break;
         }
-        case 1: {  // ShortFast
-            CSet.bandwidth = 2;      // 500 kHz
-            CSet.coding_rate = 1;    // = 4/5
-            CSet.spread_factor = 7;
+        case 1: {  // LongSlow
+            CSet.bandwidth = 0; // 125
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 12;
             break;
         }
         case 2: {  // LongFast
-            CSet.bandwidth = 5;      // 31.25 kHz
-            CSet.coding_rate = 4;    // = 4/8
-            CSet.spread_factor = 9;
-            break;
-        }
-        case 3: {  // LongSlow 
-            CSet.bandwidth = 0;      // 125 kHz
-            CSet.coding_rate = 4;    // = 4/8
-            CSet.spread_factor = 12;
-            break;
-        }
-        case 4: {  // MedSlow 
-            CSet.bandwidth = 1;      // 250 kHz
-            CSet.coding_rate = 2;    // = 4/6
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
             CSet.spread_factor = 11;
             break;
         }
-        case 5: {  // MedFast 
-            CSet.bandwidth = 1;      // 250 kHz
-            CSet.coding_rate = 3;    // = 4/7
+        case 3: {  // MidSlow 
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
             CSet.spread_factor = 10;
             break;
         }
-        default:{  // default setting is LongSlow
-            CSet.bandwidth = 0;      // 125 kHz
-            CSet.coding_rate = 4;    // = 4/8
-            CSet.spread_factor = 12;
+        case 4: {  // MidFast
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 9;
+            break;
+        }
+        case 5: {  // ShortSlow 
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 8;
+            break;
+        }
+        case 6: {  // ShortFast 
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 7;
+            break;
+        }
+        default:{  // default setting is LongFast
+            CSet.bandwidth = 1; // 250
+            CSet.coding_rate = 4; // 4/8
+            CSet.spread_factor = 11;
         }
     }
-    symbolTime =  ((1<< CSet.spread_factor)*1000 +32) *1000 / TheBandwidths[CSet.bandwidth]; // in micro seconds!
+    symbolTime =  getPacketTime(16); // in micro seconds!
     ConfigureRadio( CSet );
 #ifndef SILENT
     MSG("\n..done!\n");
@@ -161,6 +169,27 @@ void setup() {
     TimerSetValue( &CheckRadio, symbolTime / 100 ); // MCU sleeps 10 LoRa symbols (in milli seconds)
     TimerStart( &CheckRadio );                      // onCheckRadio() will break deep sleep mode
     Radio.StartCad( 3 ); // length in symbols
+}
+
+uint32_t getPacketTime(uint32_t pl)
+{
+    float bandwidthHz = TheBandwidths[CSet.bandwidth] * 1000.0f;
+    bool headDisable = false; // we currently always use the header
+    float tSym = (1 << CSet.spread_factor) / bandwidthHz;
+
+    bool lowDataOptEn = tSym > 16e-3 ? true : false; // Needed if symbol time is >16ms
+
+    float tPreamble = (LORA_PREAMBLE_LENGTH + 4.25f) * tSym;
+    float numPayloadSym =
+        8 + max(ceilf(((8.0f * pl - 4 * CSet.spread_factor + 28 + 16 - 20 * headDisable) / (4 * (CSet.spread_factor - 2 * lowDataOptEn))) * CSet.coding_rate), 0.0f);
+    float tPayload = numPayloadSym * tSym;
+    float tPacket = tPreamble + tPayload;
+
+    uint32_t msecs = tPacket * 1000;
+
+    MSG("(bw=%d, sf=%d, cr=4/%d) packet symLen=%d ms, payloadSize=%u, time %d ms\n", (int)TheBandwidths[CSet.bandwidth], CSet.spread_factor, CSet.coding_rate, (int)(tSym * 1000),
+              pl, msecs);
+    return msecs;
 }
 
 void onCheckRadio(void)
@@ -324,7 +353,9 @@ unsigned long hash(char *str)
 
 void ConfigureRadio( ChannelSettings ChanSet )
 {
-    uint32_t freq = (regions[REGION].freq + regions[REGION].spacing * ChanSet.channel_num)*1E6;
+    // uint32_t freq = (regions[REGION].freq + regions[REGION].spacing * ChanSet.channel_num)*1E6;
+    uint32_t numChannels = floor((regions[REGION].freqEnd - regions[REGION].freqStart) / (regions[REGION].spacing + (TheBandwidths[CSet.bandwidth] / 1000)));
+    uint32_t freq = regions[REGION].freqStart + ((((regions[REGION].freqEnd - regions[REGION].freqStart) / numChannels) / 2) * ChanSet.channel_num);
     #ifndef SILENT
     MSG("\nRegion is: %s", regions[REGION].name);
     MSG("  TX power: %i\n", ChanSet.tx_power);
