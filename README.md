@@ -1,3 +1,5 @@
+<a href="https://cla-assistant.io/meshtastic/Repeater"><img src="https://cla-assistant.io/readme/badge/meshtastic/Repeater" alt="CLA assistant" /></a>
+
 # Meshtastic-repeater
 
 This is the code for a simple repeater node for the meshtastic project: https://github.com/meshtastic
