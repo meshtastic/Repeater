@@ -1,4 +1,4 @@
-<a href="https://cla-assistant.io/meshtastic/Repeater"><img src="https://cla-assistant.io/readme/badge/meshtastic/Repeater" alt="CLA assistant" /></a>
+[![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/Repeater)](https://cla-assistant.io/meshtastic/Repeater)
 
 # Meshtastic-repeater
 
