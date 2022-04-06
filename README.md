@@ -2,6 +2,8 @@
 
 # Meshtastic-repeater
 
+**This Code is a Work In Progress and at the moment does not do anything. Feel free to Improve and Suggest, but don't expect results.**
+
 This is the code for a simple repeater node for the meshtastic project: https://github.com/meshtastic
 
 The actual node can be one of the LoRa CubeCell nodes by Heltec Automation: https://github.com/HelTecAutomation/ASR650x-Arduino/
