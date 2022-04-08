@@ -2,7 +2,9 @@
 
 # Meshtastic-repeater
 
-A simple repeater node firmware for Meshtastic 
+> ⚠️ This is a Work In Progress and not functional at the moment. Feel free to Improve and Suggest.
+
+A simple repeater node firmware for Meshtastic. 
 
 LoRa CubeCell nodes by Heltec Automation: https://github.com/HelTecAutomation/ASR650x-Arduino/
 
