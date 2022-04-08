@@ -2,43 +2,43 @@
 
 # Meshtastic-repeater
 
-**This Code is a Work In Progress and at the moment does not do anything. Feel free to Improve and Suggest, but don't expect results.**
+A simple repeater node firmware for Meshtastic 
 
-This is the code for a simple repeater node for the meshtastic project: https://github.com/meshtastic
+LoRa CubeCell nodes by Heltec Automation: https://github.com/HelTecAutomation/ASR650x-Arduino/
 
-The actual node can be one of the LoRa CubeCell nodes by Heltec Automation: https://github.com/HelTecAutomation/ASR650x-Arduino/
+## Notes
 
-Notes:
+Intended for use with the platform.io IDE. Depends on the NanoPB Lib and Base64 Lib (see platformio.ini). See the provided platformio.ini for built-in environments. Default is cubecell_board.
 
-Intended for use with the platform.io IDE. Depends on the NanoPB Lib and Base64 Lib (see platformio.ini). Serial output speed is 115200.
-See the provided platformio.ini for built-in environments. Default is cubecell_board.
+> Serial output speed: 115200.
 
-Will repeat packets ONCE. To prevent flooding the last repeated packet ID will not be repeated again.
+Packets will be repeated only once per packet ID, to prevent flooding.
 
 Keep in mind that re-sending packets will cause the initial sender to assume that the packet is "received" or at least in the mesh.
 If no other meshtastic node is in range of either the node or the repeater, the message will still be shown as received.
-You can use this for range tests.
 
 Will work with most packets meeting the radio settings, but the serial output is based on the assumption that the node receives meshtastic packets.
 Minimum size for none-Meshtastic packets is 14 bytes.
 
-The Repeater is not working for “medium range” setting due to the tight timings. It’s best for "very long range" and "long range", but is working for "short range", too.
+> ⚠️ The Repeater is not working for “medium range” setting due to the tight timings. It's best for "very long range" and "long range", but is working for "short range", too.
 
-"#define SILENT" to stop serial output.
+## Settings
 
-"#define NOBLINK" to NOT getting a red blink from the RGB LED for the duration of sending a packet (can be quite long at speed setting 3).
+`#define SILENT` to stop serial output.
 
-"define NO_OLED" to turn off messages on the OLED. Supported Boards for OLED mode are HTCC-AB02 and HTCC-AB02S (cubecell_board_Plus and cubecell_gps).
+`#define NOBLINK` to disable red blinking from the RGB LED during the sending of a packet (can be quite long at speed setting 3).
 
-Modifying radio settings for your own channels:
+`define NO_OLED` to turn off messages on the OLED. Supported Boards for OLED mode are HTCC-AB02 and HTCC-AB02S (cubecell_board_Plus and cubecell_gps).
 
-Edit the CONFIGURATION block in config.h
+### Meshtastic Channel Settings
 
-e.g.
-#define REGION  RegionCode_EU865  -  defines your region (to EU865). For US, use RegionCode_US, for CN use RegionCode_CN etc. See config.h for more supported regions.
+*Edit the configuration block in `config.h`*
 
-TX_MAX_POWER     14  -  sets output power to 14 dB. This value will also be used, wenn output power is set to Zero in your RegionCode (0 = max. power). TX_MAX_POWER will be ignored, when higher than RegionCode maximum
+`#define REGION  RegionCode_EU865` 
+Defines your region (to EU865). For US, use RegionCode_US, for CN use RegionCode_CN etc. See config.h for more supported regions.
 
-char MeshtasticLink[] = "https://www.meshtastic.org/c/#GAMiENTxuzogKQdZ8Lz_q89Oab8qB0RlZmF1bHQ=" ;  (Example String for Channel "Default")
+`#define TX_MAX_POWER     14` 
+Sets output power to 14 dB. This value will also be used, wenn output power is set to Zero in your RegionCode (0 = max. power). TX_MAX_POWER will be ignored, when higher than RegionCode maximum
 
-Put your own Mesh Link into the "" . The Code will compute the channel settings based on that information.
+`char MeshtasticLink[] = "https://www.meshtastic.org/d/#CgsYAyIBAYABAYgBAQ";`  (Example String for Channel "Default")
+Specificy your own Meshtastic channel url.
